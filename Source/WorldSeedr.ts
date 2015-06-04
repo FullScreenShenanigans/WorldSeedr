@@ -1,6 +1,84 @@
+interface IWorldSeedrSettings {
+    /**
+     * A very large listing of possibility schemas, keyed by title.
+     */
+    possibilities: IPossibilityContainer;
+
+    /**
+     * Function used to generate a random number
+     */
+    random: () => number;
+
+    /**
+     * Function called in this.generateFull to place a child
+     */
+    onPlacement: (commands: ICommand[]) => void;
+        
+    /**
+     * Scratch Array of prethings to be added to during generation
+     */
+    generatedCommands: ICommand[];
+
+}
+
+interface IPossibilityContainer {
+    (i: string): IPossibility;
+}
+
+interface IPossibility {
+    "width": number;
+    "height": number;
+    "contents": IPossibilityContents;
+}
+
+interface IPossibilityContents {
+    "direction": string;
+    "mode": string;
+    "snap": string;
+    "children": IPossibilityChild[];
+    "spacing"?: number | number[]| IPossibilitySpacing;
+}
+
+interface IPossibilityChild {
+    "title": string;
+    "type": string;
+}
+
+interface IPossibilitySpacing {
+    "min": number;
+    "max": number;
+    "units"?: number;
+}
+
+interface IDirectionsMap {
+    "top": string;
+    "right": string;
+    "bottom": string;
+    "left": string;
+}
+
+interface IPosition {
+    "type": string;
+    "width": number;
+    "height": number;
+    "top": number;
+    "right": number;
+    "bottom": number;
+    "left": number;
+}
+
+interface ICommand extends IPosition {
+    "title": string;
+    "arguments": any;
+}
+
+interface IChoice extends ICommand {
+    "type": string;
+    "contents"?: IChoice;
+    "children"?: IChoice[];
+}
+
 /**
- * WorldSeedr.js
- * 
  * A randomization utility to automate random, recursive generation of 
  * possibilities based on a preset position and probability schema. Each 
  * "possibility" in the schema contains a width, height, and instructions on
@@ -9,242 +87,46 @@
  * functionality is provided to stagger layout of children, such as spacing
  * between possibilities.
  * 
- * See Schema.txt for a listing of allowed possibility properties.
- * 
- * @example
- * // Creating and using a WorldSeedr to generate a simple square.
- * var WorldSeeder = new WorldSeedr({
- *         "possibilities": {
- *             "Square": {
- *                 "width": 8,
- *                 "height": 8,
- *                 "contents": {
- *                     "mode": "Certain",
- *                     "children": [{
- *                         "type": "Known",
- *                         "title": "Square"
- *                     }]
- *                 }
- *             }
- *         }
- *     }),
- *     generated = WorldSeeder.generate("Square", {
- *         "top": 8,
- *         "right": 8,
- *         "bottom": 0,
- *         "left": 0
- *     });
- * 
- * // Object {top: 8, right: 8, bottom: 0, left: 0, children: Array[1]}
- * console.log(generated);
- * 
- * // Object {title: "Square", type: "Known", arguments: undefined, width: 8...}
- * console.log(generated.children[0]);
- * 
- * @example
- * // Creating and using a WorldSeedr to generate a square snapped to to the top
- * // of a tall area.
- * var WorldSeeder = new WorldSeedr({
- *         "possibilities": {
- *             "Square": {
- *                 "width": 8,
- *                 "height": 8,
- *                 "contents": {
- *                     "mode": "Certain",
- *                     "snap": "top",
- *                     "children": [{
- *                         "type": "Known",
- *                         "title": "Square"
- *                     }]
- *                 }
- *             }
- *         }
- *     }),
- *     generated = WorldSeeder.generate("Square", {
- *         "top": 16,
- *         "right": 8,
- *         "bottom": 0,
- *         "left": 0
- *     }),
- *     square = generated.children[0];
- * 
- * // Square is located at: {16, 8, 8, 0}
- * console.log("Square is located at: {" + [
- *     square.top, square.right, square.bottom, square.left
- * ].join(", ") + "}");
- * 
- * @example
- * // Creating and using a WorldSeedr to generate random shapes of random colors
- * // sporadically within a wide area.
- * 
- * var WorldSeeder = new WorldSeedr({
- *         "possibilities": {
- *             "Shapes": {
- *                 "width": 40,
- *                 "height": 8,
- *                 "contents": {
- *                     "mode": "Random",
- *                     "direction": "right",
- *                     "spacing": {
- *                         "min": 0,
- *                         "max": 4,
- *                         "units": 2
- *                     },
- *                     "children": [{
- *                         "percent": 35,
- *                         "title": "Square",
- *                         "arguments": [{
- *                             "percent": 50,
- *                             "values": {
- *                                 "color": "Red"
- *                             }
- *                         }, {
- *                             "percent": 50,
- *                             "values": {
- *                                 "color": "Purple"
- *                             }
- *                         }]
- *                     }, {
- *                         "percent": 35,
- *                         "title": "Circle",
- *                         "arguments": [{
- *                             "percent": 50,
- *                             "values": {
- *                                 "color": "Orange"
- *                             }
- *                         }, {
- *                             "percent": 50,
- *                             "values": {
- *                                 "color": "Blue"
- *                             }
- *                         }]
- *                     }, {
- *                         "percent": 30,
- *                         "title": "Triangle",
- *                         "arguments": [{
- *                             "percent": 50,
- *                             "values": {
- *                                 "color": "Yellow"
- *                             }
- *                         }, {
- *                             "percent": 50,
- *                             "values": {
- *                                 "color": "Green"
- *                             }
- *                         }]
- *                     }]
- *                 }
- *             },
- *             "Square": {
- *                 "width": 8,
- *                 "height": 8,
- *                 "contents": {
- *                     "mode": "Certain",
- *                     "children": [{
- *                         "type": "Known",
- *                         "title": "Square",
- *                         "arguments": {
- *                             "red": "blue"
- *                         }
- *                     }]
- *                 }
- *             },
- *             "Circle": {
- *                 "width": 8,
- *                 "height": 8,
- *                 "contents": {
- *                     "mode": "Certain",
- *                     "children": [{
- *                         "type": "Known",
- *                         "title": "Circle"
- *                     }]
- *                 }
- *             },
- *             "Triangle": {
- *                 "width": 8,
- *                 "height": 8,
- *                 "contents": {
- *                     "mode": "Certain",
- *                     "children": [{
- *                         "type": "Known",
- *                         "title": "Triangle"
- *                     }]
- *                 }
- *             }
- *         }
- *     }),
- *     generated = WorldSeeder.generate("Shapes", {
- *         "top": 8,
- *         "right": 40,
- *         "bottom": 0,
- *         "left": 0
- *     }),
- *     output = [];
- * 
- * generated.children.forEach(function (child) {
- *     output.push(
- *         child.arguments.color + " " + child.title + " at " + child.left
- *     );
- * });
- * 
- * // One possibility:
- * // [
- * //     "Yellow Triangle at 0", 
- * //     "Yellow Triangle at 8", 
- * //     "Purple Square at 18", 
- * //     "Orange Circle at 26"
- * // ]
- * // Another possibility:
- * // [
- * //     "Green Triangle at 0",
- * //     "Yellow Triangle at 8",
- * //     "Red Square at 20", 
- * //     "Orange Circle at 30"
- * // ]
- * console.log(output);
- * 
  * @author "Josh Goldberg" <josh@fullscreenmario.com
  */
-function WorldSeedr(settings) {
-    "use strict";
-    if (!this || this === window) {
-        return new WorldSeedr(settings);
-    }
-    var self = this,
+class WorldSeedr {
+    /**
+     * A very large listing of possibility schemas, keyed by title.
+     */
+    private possibilities: IPossibilityContainer;
+
+    /**
+     * Function used to generate a random number
+     */
+    private random: () => number;
+
+    // Function called in this.generateFull to place a child
+    private onPlacement: (commands: ICommand[]) => void;
         
-        // A very large listing of possibilities, keyed by title
-        possibilities,
+    // Scratch Array of prethings to be added to during generation
+    private generatedCommands: ICommand[];
         
-        // Function used to generate a random number
-        random,
+    // A constant listing of direction opposites, like top-bottom
+    private directionOpposites: IDirectionsMap = {
+        "top": "bottom",
+        "right": "left",
+        "bottom": "top",
+        "left": "right"
+    };
         
-        // Function called in self.generateFull to place a child
-        onPlacement,
+    // A constant listing of what direction the sides of areas correspond to
+    private directionSizing: IDirectionsMap = {
+        "top": "height",
+        "right": "width",
+        "bottom": "height",
+        "left": "width"
+    };
         
-        // A constant listing of direction opposites, like top-bottom
-        directionOpposites = {
-            "top": "bottom",
-            "right": "left",
-            "bottom": "top",
-            "left": "right"
-        },
+    // A constant Array of direction names
+    private directionNames: string[] = ["top", "right", "bottom", "left"];
         
-        // A constant listing of what direction the sides of areas correspond to
-        directionSizing = {
-            "top": "height",
-            "right": "width",
-            "bottom": "height",
-            "left": "width"
-        },
-        
-        // A constant Array of direction names
-        directionNames = Object.keys(directionOpposites),
-        
-        // A constant Array of the dimension descriptors
-        sizingNames = ["width", "height"],
-        
-        // Scratch Array of prethings to be added to during generation
-        generatedCommands;
+    // A constant Array of the dimension descriptors
+    private sizingNames: string[] = ["width", "height"];
     
     /**
      * Resets the WorldSeedr.
@@ -259,17 +141,17 @@ function WorldSeedr(settings) {
      *                                   called in runGeneratedCommands (by 
      *                                   default, console.log).
      */
-    self.reset = function (settings) {
+    constructor(settings: IWorldSeedrSettings) {
         if (typeof settings.possibilities === "undefined") {
             throw new Error("No possibilities given to WorldSeedr.");
         }
-        
-        possibilities = settings.possibilities;
-        random = settings.random || Math.random.bind(Math);
-        onPlacement = settings.onPlacement || console.log.bind(console, "Got:");
-        
-        self.clearGeneratedCommands();
-    };
+
+        this.possibilities = settings.possibilities;
+        this.random = settings.random || Math.random.bind(Math);
+        this.onPlacement = settings.onPlacement || console.log.bind(console, "Got:");
+
+        this.clearGeneratedCommands();
+    }
     
     
     /* Simple gets & sets
@@ -278,56 +160,56 @@ function WorldSeedr(settings) {
     /**
      * @return {Object} The listing of possibilities that may be generated.
      */
-    self.getPossibilities = function () {
-        return possibilities;
-    };
+    getPossibilities(): IPossibilityContainer {
+        return this.possibilities;
+    }
     
     /**
      * @param {Object} possibilitiesNew   A new Object to list possibilities
      *                                    that may be generated.
      */
-    self.setPossibilities = function (possibilitiesNew) {
-        possibilities = possibilitiesNew;
-    };
+    setPossibilities(possibilities: IPossibilityContainer) {
+        this.possibilities = possibilities;
+    }
     
     /**
      * @return {Function} The Function callback for generated possibilities of
      *                    type "known" to be called in runGeneratedCommands.
      */
-    self.getOnPlacement = function () {
-        return onPlacement;
-    };
+    getOnPlacement(): (commands: ICommand[]) => void {
+        return this.onPlacement;
+    }
     
     /**
      * @param {Function} onPlacementNew   A new Function to be used as the
      *                                    onPlacement callback.
      */
-    self.setOnPlacement = function (onPlacementNew) {
-        onPlacement = onPlacementNew;
-    };
-    
-    
+    setOnPlacement(onPlacement: (commands: ICommand[]) => void): void {
+        this.onPlacement = onPlacement;
+    }
+
+
     /* Generated commands
     */
-    
+
     /**
      * Resets the generatedCommands Array so runGeneratedCommands can start.    
      */
-    self.clearGeneratedCommands = function () {
-        generatedCommands = [];
-    };
-    
+    clearGeneratedCommands(): void {
+        this.generatedCommands = [];
+    }
+
     /**
      * Runs the onPlacement callback on the generatedCommands Array.
      */
-    self.runGeneratedCommands = function () {
-        onPlacement(generatedCommands);
-    };
-    
-    
+    runGeneratedCommands(): void {
+        this.onPlacement(this.generatedCommands);
+    }
+
+
     /* Hardcore generation functions
     */
-    
+
     /**
      * Generates a collection of randomly chosen possibilities based on the 
      * given schema mapping. These does not recursively parse the output; do
@@ -339,23 +221,23 @@ function WorldSeedr(settings) {
      * @return {Object}   An Object containing a position within the given 
      *                    position and some number of children.
      */
-    self.generate = function (name, position) {
-        var schema = possibilities[name];
-        
+    generate(name: string, command: IPosition | ICommand) {
+        var schema: IPossibility = this.possibilities[name];
+
         if (!schema) {
             throw new Error("No possibility exists under '" + name + "'");
         }
-        
+
         if (!schema.contents) {
-            throw new Error("'" + name + "' has no possibile outcomes.");
+            throw new Error("Possibility '" + name + "' has no possibile outcomes.");
         }
-        
-        return generateChildren(schema, positionCopy(position));
-    };
+
+        return this.generateChildren(schema, this.objectCopy(command));
+    }
     
     /**
      * Recursively generates a schema. The schema's title and itself are given 
-     * to self.generate; all outputs of type "Known" are added to the 
+     * to this.generate; all outputs of type "Known" are added to the 
      * generatedCommands Array, while everything else is recursed upon.
      * 
      * @param {Object} schema   A simple Object with basic information on the
@@ -363,36 +245,39 @@ function WorldSeedr(settings) {
      * @return {Object}   An Object containing a position within the given 
      *                    position and some number of children. 
      */
-    self.generateFull = function (schema) {
-        var generated = self.generate(schema.title, schema),
-            child, contents, i;
-        
-        for (i in generated.children) {
+    generateFull(schema: ICommand): void {
+        var generated = this.generate(schema.title, schema),
+            child: IChoice,
+            i: number;
+
+        if (!generated || !generated.children) {
+            return;
+        }
+
+        for (i = 0; i < generated.children.length; i += 1) {
             child = generated.children[i];
-                    
+
             switch (child.type) {
                 case "Known":
-                    generatedCommands.push(child);
+                    this.generatedCommands.push(child);
                     break;
                 case "Random":
-                    self.generateFull(child);
+                    this.generateFull(child);
                     break;
             }
         }
-        
-        return generatedCommands;
-    };
+    }
     
     /**
      * Generates the children for a given schema, position, and direction. This
-     * is the real hardcore function called by self.generate, which calls the
+     * is the real hardcore function called by this.generate, which calls the
      * differnt subroutines based on whether the contents are in "Certain" or
      * "Random" mode.
      * 
      * @param {Object} schema   A simple Object with basic information on the
      *                          chosen possibility.
-     * @param {Object} position   An Object that contains .left, .right, .top, 
-     *                            and .bottom.
+     * @param {Object} position   The bounding box for where the children may
+     *                            be generated.
      * @param {String} [direction]   A string direction to check the position 
      *                               by ("top", "right", "bottom", or "left")
      *                               as a default if contents.direction isn't
@@ -400,40 +285,39 @@ function WorldSeedr(settings) {
      * @return {Object}   An Object containing a position within the given 
      *                    position and some number of children.
      */
-    function generateChildren(schema, position, direction) {
-        var contents = schema.contents,
-            spacing = contents.spacing || 0,
-            positionMerged = positionMerge(schema, position),
-            children, 
-            child;
-        
+    private generateChildren(schema: IPossibility, position: IPosition, direction: string = undefined) {
+        var contents: IPossibilityContents = schema.contents,
+            spacing: number | number[]| IPossibilitySpacing = contents.spacing || 0,
+            objectMerged: IPosition = this.objectMerge(schema, position),
+            children;
+
         direction = contents.direction || direction;
-        
+
         switch (contents.mode) {
             case "Random":
-                children = generateChildrenRandom(contents, positionMerged, direction, spacing);
+                children = this.generateChildrenRandom(contents, objectMerged, direction, spacing);
                 break;
             case "Certain":
-                children = generateChildrenCertain(contents, positionMerged, direction, spacing);
+                children = this.generateChildrenCertain(contents, objectMerged, direction, spacing);
                 break;
             case "Repeat":
-                children = generateChildrenRepeat(contents, positionMerged, direction, spacing);
+                children = this.generateChildrenRepeat(contents, objectMerged, direction, spacing);
                 break;
             case "Multiple":
-                children = generateChildrenMultiple(contents, positionMerged, direction, spacing);
+                children = this.generateChildrenMultiple(contents, objectMerged, direction, spacing);
                 break;
         }
-        
-        return getPositionExtremes(children);
+
+        return this.getPositionExtremes(children);
     }
     
     /**
      * Generates a schema's children that are known to follow a set listing of
      * sub-schemas.
      * 
-     * @param {Object} contents   The Array of known possibilities, in order.
-     * @param {Object} position   An Object that contains .left, .right, .top, 
-     *                            and .bottom.
+     * @param {Object} contents   The known possibilities to choose between.
+     * @param {Object} position   The bounding box for where the children may
+     *                            be generated.
      * @param {String} direction   A string direction to check the position by:
      *                             "top", "right", "bottom", or "left".
      * @param {Number} spacing   How much space there should be between each
@@ -441,24 +325,27 @@ function WorldSeedr(settings) {
      * @return {Object}   An Object containing a position within the given 
      *                    position and some number of children.
      */
-    function generateChildrenCertain(contents, position, direction, spacing) {
-        var child;
-        
-        return contents.children.map(function (choice) {
+    private generateChildrenCertain(contents: IPossibilityContents, position: IPosition, direction: string, spacing: number | number[]| IPossibilitySpacing): IChoice[] {
+        var scope: WorldSeedr = this;
+
+        return contents.children.map(function (choice: IPossibilityChild) {
             if (choice.type === "Final") {
-                return parseChoiceFinal(contents, choice, position, direction);
+                return scope.parseChoiceFinal(contents, choice, position, direction);
             }
-            
-            child = parseChoice(choice, position, direction);
-            if (child) {
-                if (child.type !== "Known") {
-                    child.contents = self.generate(child.title, position);
+
+            var output: IChoice = scope.parseChoice(choice, position, direction);
+
+            if (output) {
+                if (output.type !== "Known") {
+                    output.contents = scope.generate(output.title, position);
                 }
-                shrinkPositionByChild(position, child, direction, spacing);
+
+                scope.shrinkPositionByChild(position, output, direction, spacing);
             }
-            return child;
+
+            return output;
         }).filter(function (child) {
-            return child;
+            return child !== undefined;
         });
     }
     
@@ -466,52 +353,54 @@ function WorldSeedr(settings) {
     /**
      * Generates a schema's children that are known to follow a set listing of
      * sub-schemas, repeated until there is no space left.
-     * 
-     * @param {Object} contents   The Array of known possibilities, in order.
-     * @param {Object} position   An Object that contains .left, .right, .top, 
-     *                            and .bottom.
+     *
+     * @param {Object} contents   The known possibilities to choose between.
+     * @param {Object} position   The bounding box for where the children may
+     *                            be generated.
      * @param {String} direction   A string direction to check the position by:
      *                             "top", "right", "bottom", or "left".
      * @param {Number} spacing   How much space there should be between each
      *                           child.
-     * @return {Object}   An Object containing a position within the given 
+     * @return {Object}   An Object containing a position within the given
      *                    position and some number of children.
      */
-    function generateChildrenRepeat(contents, position, direction, spacing) {
-        var choices = contents.children,
-            positionOld = positionCopy(position),
+    private generateChildrenRepeat(contents: IPossibilityContents, position: IPosition, direction: string, spacing: number | number[]| IPossibilitySpacing) {
+        var choices: IPossibilityChild[] = contents.children,
+            positionOld = this.objectCopy(position),
             children = [],
-            choice, child, 
+            choice, child,
             i = 0;
-        
-        while(positionIsNotEmpty(position, direction)) {
+
+        // Continuously loops through the choices and adds them to the output
+        // children, so long as there's still room for them
+        while (this.positionIsNotEmpty(position, direction)) {
             choice = choices[i];
-            
+
             if (choice.type === "Final") {
-                child = parseChoiceFinal(contents, choice, position, direction);
+                child = this.parseChoiceFinal(contents, choice, position, direction);
             } else {
-                child = parseChoice(choice, position, direction);
-                
+                child = this.parseChoice(choice, position, direction);
+
                 if (child) {
                     if (child.type !== "Known") {
-                        child.contents = self.generate(child.title, position);
+                        child.contents = this.generate(child.title, position);
                     }
                 }
             }
-            
-            if (child && doesChoiceFitPosition(child, position)) {
-                shrinkPositionByChild(position, child, direction, spacing);
+
+            if (child && this.choiceFitsPosition(child, position)) {
+                this.shrinkPositionByChild(position, child, direction, spacing);
                 children.push(child);
             } else {
                 break;
             }
-            
+
             i += 1;
             if (i >= choices.length) {
                 i = 0;
             }
         }
-        
+
         return children;
     }
     
@@ -530,24 +419,26 @@ function WorldSeedr(settings) {
      * @return {Object}   An Object containing a position within the given 
      *                    position and some number of children.
      */
-    function generateChildrenRandom(contents, position, direction, spacing) {
+    private generateChildrenRandom(contents, position, direction, spacing): IChoice[] {
         var children = [],
             child;
-        
-        while(positionIsNotEmpty(position, direction)) {
-            child = generateChild(contents, position, direction);
+
+        // Continuously add random choices to the output children as long as 
+        // there's room in the position's bounding box
+        while (this.positionIsNotEmpty(position, direction)) {
+            child = this.generateChild(contents, position, direction);
             if (!child) {
                 break;
             }
-            
-            shrinkPositionByChild(position, child, direction, spacing);
+
+            this.shrinkPositionByChild(position, child, direction, spacing);
             children.push(child);
-            
+
             if (contents.limit && children.length > contents.limit) {
                 return;
             }
         }
-        
+
         return children;
     }
     
@@ -567,14 +458,16 @@ function WorldSeedr(settings) {
      * @return {Object}   An Object containing a position within the given 
      *                    position and some number of children.
      */
-    function generateChildrenMultiple(contents, position, direction, spacing) {
+    private generateChildrenMultiple(contents, position, direction, spacing): IChoice[] {
+        var scope: WorldSeedr = this;
+
         return contents.children.map(function (choice) {
-            var output = parseChoice(choice, positionCopy(position), direction);
-            
+            var output = scope.parseChoice(choice, scope.objectCopy(position), direction);
+
             if (direction) {
-                movePositionBySpacing(position, direction, spacing);
+                scope.movePositionBySpacing(position, direction, spacing);
             }
-            
+
             return output;
         });
     }
@@ -597,14 +490,14 @@ function WorldSeedr(settings) {
      *                    parsed child, with the basic schema (.title) info 
      *                    added as well as any optional .arguments.
      */
-    function generateChild(contents, position, direction) {
-        var choice = chooseAmongPosition(contents.children, position);
-        
+    private generateChild(contents, position, direction): IChoice {
+        var choice = this.chooseAmongPosition(contents.children, position);
+
         if (!choice) {
             return undefined;
         }
-        
-        return parseChoice(choice, position, direction);
+
+        return this.parseChoice(choice, position, direction);
     }
     
     /**
@@ -623,35 +516,29 @@ function WorldSeedr(settings) {
      *                    parsed child, with the basic schema (.title) info 
      *                    added as well as any optional .arguments.
      */
-    function parseChoice(choice, position, direction) {
-        var title = choice.title,
-            schema = possibilities[title],
-            sizing = choice["sizing"],
-            stretch = choice["stretch"],
-            output = {
+    private parseChoice(choice, position, direction): IChoice {
+        var title: string = choice.title,
+            schema: IPossibility = this.possibilities[title],
+            output: IChoice = {
                 "title": title,
                 "type": choice.type,
                 "arguments": choice["arguments"] instanceof Array
-                    ? chooseAmong(choice["arguments"]).values
+                    ? this.chooseAmong(choice["arguments"]).values
                     : choice["arguments"],
+                "width": undefined,
+                "height": undefined,
+                "top": undefined,
+                "right": undefined,
+                "bottom": undefined,
+                "left": undefined
             },
             name, i;
-        
-        for (i in sizingNames) {
-            name = sizingNames[i];
-            
-            output[name] = (sizing && typeof sizing[name] !== "undefined")
-                ? sizing[name]
-                : schema[name];
-        }
-        
-        for (i in directionNames) {
-            name = directionNames[i];
-            output[name] = position[name];
-        }
-        output[direction] = output[directionOpposites[direction]]
-            + output[directionSizing[direction]];
-        
+
+        this.ensureSizingOnChoice(output, choice, schema);
+        this.ensureDirectionBoundsOnChoice(output, position);
+
+        output[direction] = output[this.directionOpposites[direction]] + output[this.directionSizing[direction]];
+
         switch (schema.contents.snap) {
             case "top":
                 output["bottom"] = output["top"] - output["height"];
@@ -666,44 +553,37 @@ function WorldSeedr(settings) {
                 output["right"] = output["left"] + output["width"];
                 break;
         }
-        
-        if (stretch) {
-            if (stretch.width) {
+
+        if (choice.stretch) {
+            if (!output.arguments) {
+                output.arguments = {};
+            }
+
+            if (choice.stretch.width) {
                 output.left = position.left;
                 output.right = position.right;
                 output.width = output.right - output.left;
-                if (!output.arguments) {
-                    output.arguments = {
-                        "width": output.width
-                    };
-                } else {
-                    output.arguments.width = output.width;
-                }
+                output.arguments.width = output.width;
             }
-            if (stretch.height) {
+
+            if (choice.stretch.height) {
                 output.top = position.top;
                 output.bottom = position.bottom;
                 output.height = output.top - output.bottom;
-                if (!output.arguments) {
-                    output.arguments = {
-                        "height": output.height
-                    };
-                } else {
-                    output.arguments.height = output.height;
-                }
+                output.arguments.height = output.height;
             }
         }
-        
-        copySchemaArguments(schema, choice, output);
-        
+
+        this.copySchemaArguments(schema, choice, output);
+
         return output;
     }
     
     /**
      * should conform to parent (contents) via cannonsmall.snap=bottom
      */
-    function parseChoiceFinal(parent, choice, position, direction) {
-        var schema = possibilities[choice.source],
+    private parseChoiceFinal(parent, choice, position, direction) {
+        var schema = this.possibilities[choice.source],
             output = {
                 "type": "Known",
                 "title": choice.title,
@@ -715,9 +595,9 @@ function WorldSeedr(settings) {
                 "bottom": position.bottom,
                 "left": position.left
             };
-        
-        copySchemaArguments(schema, choice, output);
-        
+
+        this.copySchemaArguments(schema, choice, output);
+
         return output;
     }
     
@@ -731,18 +611,18 @@ function WorldSeedr(settings) {
      * @param {Array} choice   An Array of objects with .width and .height.
      * @return {Object}
      */
-    function chooseAmong(choices) {
+    private chooseAmong(choices) {
         if (!choices.length) {
             return undefined;
         }
         if (choices.length === 1) {
             return choices[0];
         }
-        
-        var choice = randomPercentage(),
+
+        var choice = this.randomPercentage(),
             sum = 0,
             i;
-        
+
         for (i = 0; i < choices.length; i += 1) {
             sum += choices[i].percent;
             if (sum >= choice) {
@@ -764,12 +644,13 @@ function WorldSeedr(settings) {
      *          among fitting ones but 75 is randomly chosen, something should
      *          still be returned.
      */
-    function chooseAmongPosition(choices, position) {
+    private chooseAmongPosition(choices, position) {
         var width = position.right - position.left,
-            height = position.top - position.bottom;
-        
-        return chooseAmong(choices.filter(function (choice) {
-            return doesChoiceFit(possibilities[choice.title], width, height);
+            height = position.top - position.bottom,
+            scope: WorldSeedr = this;
+
+        return this.chooseAmong(choices.filter(function (choice) {
+            return scope.doesChoiceFit(scope.possibilities[choice.title], width, height);
         }));
     }
     
@@ -781,7 +662,7 @@ function WorldSeedr(settings) {
      * @param {Number} height
      * @return {Boolean} Whether the choice fits within the position.
      */
-    function doesChoiceFit(choice, width, height) {
+    private doesChoiceFit(choice, width, height) {
         return choice.width <= width && choice.height <= height;
     }
     
@@ -797,26 +678,22 @@ function WorldSeedr(settings) {
      *          chooseAmongPosition), it's more efficient to store the width
      *          and height separately and just use doesChoiceFit.                
      */
-     function doesChoiceFitPosition(choice, position) {
-        return doesChoiceFit(
-            choice,
-            position.right - position.left, 
-            position.top - position.bottom
-        );
-     }
+    private choiceFitsPosition(choice, position) {
+        return this.doesChoiceFit(choice, position.right - position.left, position.top - position.bottom);
+    }
     
     /**
      * @return {Number} A number in [1, 100] at random.
      */
-    function randomPercentage() {
-        return Math.floor(random() * 100) + 1;
+    private randomPercentage() {
+        return Math.floor(this.random() * 100) + 1;
     }
     
     /**
      * @return {Number} A number in [min, max] at random.
      */
-    function randomBetween(min, max) {
-        return Math.floor(random() * (1 + max - min)) + min;
+    private randomBetween(min, max) {
+        return Math.floor(this.random() * (1 + max - min)) + min;
     }
     
     
@@ -826,19 +703,19 @@ function WorldSeedr(settings) {
     /**
      * Creates and returns a copy of a position (really just a shallow copy).
      * 
-     * @param {Object} position
+     * @param {Object} original
      * @return {Object}
      */
-    function positionCopy(position) {
-        var output = {},
-            i;
-        
-        for (i in position) {
-            if (position.hasOwnProperty(i)) {
-                output[i] = position[i];
+    private objectCopy(original: any): any {
+        var output: any = {},
+            i: string;
+
+        for (i in original) {
+            if (original.hasOwnProperty(i)) {
+                output[i] = original[i];
             }
         }
-        
+
         return output;
     }
     
@@ -850,16 +727,16 @@ function WorldSeedr(settings) {
      * @param {Object} secondary
      * @return {Object}
      */
-    function positionMerge(primary, secondary) {
-        var output = positionCopy(primary),
-            i;
-        
+    private objectMerge(primary: any, secondary: any): any {
+        var output: IPosition = this.objectCopy(primary),
+            i: string;
+
         for (i in secondary) {
-            if (!output.hasOwnProperty(i)) {
+            if (secondary.hasOwnProperty(i) && !output.hasOwnProperty(i)) {
                 output[i] = secondary[i];
             }
         }
-        
+
         return output;
     }
     
@@ -872,7 +749,7 @@ function WorldSeedr(settings) {
      * @param {String} direction   A string direction to check the position in:
      *                             "top", "right", "bottom", or "left".
      */
-    function positionIsNotEmpty(position, direction) {
+    private positionIsNotEmpty(position: IPosition, direction: string) {
         if (direction === "right" || direction === "left") {
             return position.left < position.right;
         } else {
@@ -892,19 +769,19 @@ function WorldSeedr(settings) {
      * @param {Mixed} [spacing]   How much space there should be between each
      *                            child (by default, 0).
      */
-    function shrinkPositionByChild(position, child, direction, spacing) {
+    private shrinkPositionByChild(position, child, direction, spacing) {
         switch (direction) {
             case "top":
-                position.bottom = child.top + parseSpacing(spacing);
+                position.bottom = child.top + this.parseSpacing(spacing);
                 return;
             case "right":
-                position.left = child.right + parseSpacing(spacing);
+                position.left = child.right + this.parseSpacing(spacing);
                 return;
             case "bottom":
-                position.top = child.bottom - parseSpacing(spacing);
+                position.top = child.bottom - this.parseSpacing(spacing);
                 return;
             case "left":
-                position.right = child.left - parseSpacing(spacing);
+                position.right = child.left - this.parseSpacing(spacing);
                 return;
         }
     }
@@ -921,9 +798,9 @@ function WorldSeedr(settings) {
      * @param {Mixed} [spacing]   How much space there should be between each
      *                            child (by default, 0).
      */
-    function movePositionBySpacing(position, direction, spacing) {
-        var space = parseSpacing(spacing);
-        
+    private movePositionBySpacing(position, direction, spacing) {
+        var space = this.parseSpacing(spacing);
+
         switch (direction) {
             case "top":
                 position.top += space;
@@ -955,24 +832,20 @@ function WorldSeedr(settings) {
      *                          "units" to round to.
      * @return {Number}
      */
-    function parseSpacing(spacing) {
+    private parseSpacing(spacing) {
         if (!spacing) {
             return 0;
         }
-        
+
         switch (spacing.constructor) {
             case Array:
                 if (spacing[0].constructor === Number) {
-                    return parseSpacingObject(
-                        randomBetween(spacing[0], spacing[1])
-                    );
+                    return this.parseSpacingObject(this.randomBetween(spacing[0], spacing[1]));
                 } else {
-                    return parseSpacingObject(
-                        chooseAmong(spacing).value
-                    );
+                    return this.parseSpacingObject(this.chooseAmong(spacing).value);
                 }
             case Object:
-                return parseSpacingObject(spacing);
+                return this.parseSpacingObject(spacing);
             default:
                 return spacing;
         }
@@ -986,16 +859,16 @@ function WorldSeedr(settings) {
      * @param {Object} spacing
      * @return {Number}
      */
-    function parseSpacingObject(spacing) {
+    private parseSpacingObject(spacing) {
         if (spacing.constructor === Number) {
             return spacing;
         }
-        
+
         var min = spacing.min,
             max = spacing.max,
             units = spacing.units || 1;
-        
-        return randomBetween(min / units, max / units) * units;
+
+        return this.randomBetween(min / units, max / units) * units;
     }
     
     /**
@@ -1007,13 +880,13 @@ function WorldSeedr(settings) {
      *                            .bottom, and .left.
      * @return {Object}   An Object with .top, .right, .bottom, and .left.
      */
-    function getPositionExtremes(children) {
+    private getPositionExtremes(children): IChoice {
         var position, child, i;
-        
+
         if (!children || !children.length) {
-            return {};
+            return undefined;
         }
-        
+
         child = children[0];
         position = {
             "top": child.top,
@@ -1022,24 +895,24 @@ function WorldSeedr(settings) {
             "left": child.left,
             "children": children
         };
-        
+
         if (children.length === 1) {
             return position;
         }
-        
+
         for (i = 1; i < children.length; i += 1) {
             child = children[i];
-            
+
             if (!Object.keys(child).length) {
                 return position;
             }
-            
+
             position["top"] = Math.max(position["top"], child["top"]);
             position["right"] = Math.max(position["right"], child["right"]);
             position["bottom"] = Math.min(position["bottom"], child["bottom"]);
             position["left"] = Math.min(position["left"], child["left"]);
         }
-        
+
         return position;
     }
     
@@ -1054,23 +927,66 @@ function WorldSeedr(settings) {
      * @param {Object} output   The Object (likely a parsed possibility content)
      *                          having its arguments modified.    
      */
-    function copySchemaArguments(schema, choice, output) {
+    private copySchemaArguments(schema, choice, output) {
         var map = schema.contents.argumentMap,
             i;
-        
+
         if (!map) {
             return;
         }
-        
+
         if (!output.arguments) {
             output.arguments = {};
         }
-        
+
         for (i in map) {
             output.arguments[map[i]] = choice[i];
         }
     }
+
+    /**
+     * Ensures an output from parseChoice contains all the necessary size
+     * measurements, as listed in this.sizingNames.
+     * 
+     * @param {Object} output   The Object (likely a parsed possibility content)
+     *                          having its arguments modified.    
+     * @param {Object} choice   The simple definition of the Object chosen from
+     *                          a choices array.
+     * @param {Object} schema   A simple Object with basic information on the
+     *                          chosen possibility.
+     */
+    private ensureSizingOnChoice(output, choice, schema: IPossibility) {
+        var name: string,
+            i: string;
+
+        for (i in this.sizingNames) {
+            if (!this.sizingNames.hasOwnProperty(i)) {
+                continue;
+            }
+
+            name = this.sizingNames[i];
+
+            output[name] = (choice.sizing && typeof choice.sizing[name] !== "undefined")
+                ? choice.sizing[name]
+                : schema[name];
+        }
+    }
     
-    
-    self.reset(settings || {});
+    /**
+     * Ensures an output from parseChoice contains all the necessary position
+     * bounding box measurements, as listed in this.directionNames.
+     * 
+     * @param {Object} output   The Object (likely a parsed possibility content)
+     *                          having its arguments modified.    
+     *                          chosen possibility.
+     * @param {Object} position   An Object that contains .left, .right, .top, 
+     *                            and .bottom.
+     */
+    private ensureDirectionBoundsOnChoice(output, position) {
+        for (var i in this.directionNames) {
+            if (this.directionNames.hasOwnProperty(i)) {
+                output[this.directionNames[i]] = position[this.directionNames[i]];
+            }
+        }
+    }
 }
