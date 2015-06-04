@@ -353,8 +353,7 @@ class WorldSeedr {
         contents: IPossibilityContents,
         position: IPosition,
         direction: string,
-        spacing: number | number[]| IPossibilitySpacing
-        ): IChoice[] {
+        spacing: number | number[]| IPossibilitySpacing): IChoice[] {
         var scope: WorldSeedr = this;
 
         return contents.children.map(function (choice: IPossibilityChild): IChoice {
@@ -397,8 +396,7 @@ class WorldSeedr {
         contents: IPossibilityContents,
         position: IPosition,
         direction: string,
-        spacing: number | number[]| IPossibilitySpacing
-        ): IChoice[] {
+        spacing: number | number[]| IPossibilitySpacing): IChoice[] {
         var choices: IPossibilityChild[] = contents.children,
             children: IChoice[] = [],
             choice: IPossibilityChild,
@@ -457,8 +455,7 @@ class WorldSeedr {
         contents: IPossibilityContents,
         position: IPosition,
         direction: string,
-        spacing: number | number[]| IPossibilitySpacing
-        ): IChoice[] {
+        spacing: number | number[]| IPossibilitySpacing): IChoice[] {
         var children: IChoice[] = [],
             child: IChoice;
 
@@ -501,8 +498,7 @@ class WorldSeedr {
         contents: IPossibilityContents,
         position: IPosition,
         direction: string,
-        spacing: number | number[]| IPossibilitySpacing
-        ): IChoice[] {
+        spacing: number | number[]| IPossibilitySpacing): IChoice[] {
         var scope: WorldSeedr = this;
 
         return contents.children.map(function (choice: IPossibilityChild): IChoice {
@@ -848,8 +844,7 @@ class WorldSeedr {
     private movePositionBySpacing(
         position: IPosition,
         direction: string,
-        spacing: number | number[] | IPossibilitySpacing | IPossibilitySpacingOption[] = 0
-        ): void {
+        spacing: number | number[] | IPossibilitySpacing | IPossibilitySpacingOption[] = 0): void {
         var space: number = this.parseSpacing(spacing);
 
         switch (direction) {
