@@ -1,4 +1,8 @@
+// @ifdef INCLUDE_DEFINITIONS
 /// <reference path="WorldSeedr.d.ts" />
+// @endif
+
+// @include ../Source/WorldSeedr.d.ts
 
 module WorldSeedr {
     "use strict";
@@ -23,13 +27,19 @@ module WorldSeedr {
          */
         private random: () => number;
 
-        // Function called in this.generateFull to place a child
+        /**
+         * Function called in generateFull to place a command.
+         */
         private onPlacement: (commands: ICommand[]) => void;
 
-        // Scratch Array of prethings to be added to during generation
+        /**
+         * Scratch Array of PreThings to be added to during generation.
+         */
         private generatedCommands: ICommand[];
 
-        // A constant listing of direction opposites, like top-bottom
+        /**
+         * A constant listing of direction opposites, like top-bottom.
+         */
         private directionOpposites: IDirectionsMap = {
             "top": "bottom",
             "right": "left",
@@ -37,7 +47,9 @@ module WorldSeedr {
             "left": "right"
         };
 
-        // A constant listing of what direction the sides of areas correspond to
+        /**
+         * A constant listing of what direction the sides of areas correspond to.
+         */
         private directionSizing: IDirectionsMap = {
             "top": "height",
             "right": "width",
@@ -45,10 +57,14 @@ module WorldSeedr {
             "left": "width"
         };
 
-        // A constant Array of direction names
+        /**
+         * A constant Array of direction names.
+         */
         private directionNames: string[] = ["top", "right", "bottom", "left"];
 
-        // A constant Array of the dimension descriptors
+        /**
+         * A constant Array of the dimension descriptors.
+         */
         private sizingNames: string[] = ["width", "height"];
 
         /**

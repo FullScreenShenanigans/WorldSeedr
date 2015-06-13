@@ -111,6 +111,13 @@ declare module WorldSeedr {
     }
 
     export interface IWorldSeedr {
-
+        getPossibilities(): IPossibilityContainer;
+        setPossibilities(possibilities: IPossibilityContainer): void;
+        getOnPlacement(): (commands: ICommand[]) => void;
+        setOnPlacement(onPlacement: (commands: ICommand[]) => void): void;
+        clearGeneratedCommands(): void;
+        runGeneratedCommands(): void;
+        generate(name: string, command: IPosition | ICommand): IChoice;
+        generateFull(schema: ICommand): void;
     }
 }
