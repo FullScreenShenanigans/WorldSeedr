@@ -1,5 +1,7 @@
 <!-- {{Top}} -->
 # WorldSeedr
+
+[![Greenkeeper badge](https://badges.greenkeeper.io/FullScreenShenanigans/WorldSeedr.svg)](https://greenkeeper.io/)
 [![Build Status](https://travis-ci.org/FullScreenShenanigans/WorldSeedr.svg?branch=master)](https://travis-ci.org/FullScreenShenanigans/WorldSeedr)
 [![NPM version](https://badge.fury.io/js/worldseedr.svg)](http://badge.fury.io/js/worldseedr)
 
