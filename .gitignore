@@ -2,7 +2,6 @@ dist/
 docs/generated/
 test/
 node_modules/
-*.css
 *.d.ts
 *.js*
 !./*.js
@@ -10,6 +9,10 @@ node_modules/
 *.html
 npm-debug.log
 debug.log
+
+# Code coverage
+coverage.json
+coverage/
 
 # Added by shenanigans-manager for maps testing
 Maps.test.ts
